@@ -1,5 +1,6 @@
 package hanghae.homework_posting.service;
 
+import hanghae.homework_posting.dto.CommentResponseDto;
 import hanghae.homework_posting.dto.PostingRequestDto;
 import hanghae.homework_posting.dto.PostingResponseDto;
 import hanghae.homework_posting.entity.Comment;
@@ -10,6 +11,7 @@ import hanghae.homework_posting.jwt.JwtUtil;
 import hanghae.homework_posting.repository.CommentRepostiory;
 import hanghae.homework_posting.repository.MemberRepository;
 import hanghae.homework_posting.repository.PostingRepository;
+import hanghae.homework_posting.repository.PostingRepositoryImpl;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,7 @@ public class PostingService {
     private final PostingRepository postingRepository;
     private final MemberRepository memberRepository;
     private final CommentRepostiory commentRepostiory;
+    private final PostingRepositoryImpl postingRepositoryImpl;
     private final JwtUtil jwtUtil;
 
 
@@ -51,7 +54,7 @@ public class PostingService {
 
     @Transactional
     public List<PostingResponseDto> getPostings() {
-        return postingRepository.getPostings();
+        return postingRepositoryImpl.getPostings();
     }
 
     @Transactional

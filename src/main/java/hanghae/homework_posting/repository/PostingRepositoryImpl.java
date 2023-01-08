@@ -9,7 +9,8 @@ import javax.persistence.PersistenceContext;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PostingRepositoryImpl implements CustomPostingRepository{
+@Repository
+public class PostingRepositoryImpl {
 
     @PersistenceContext
     EntityManager em;

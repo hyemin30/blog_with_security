@@ -57,7 +57,7 @@ public class CommentService {
             comment.update(requestDto);
             return new CommentResponseDto(comment);
         }
-        throw new IllegalArgumentException("본인 댓글만 수정 가능합니다");
+        throw new IllegalArgumentException("본인의 댓글만 수정 가능합니다");
     }
 
     @Transactional
