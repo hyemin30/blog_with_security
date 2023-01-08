@@ -1,17 +1,13 @@
 package hanghae.homework_posting.service;
 
-import hanghae.homework_posting.dto.CommentResponseDto;
 import hanghae.homework_posting.dto.PostingRequestDto;
 import hanghae.homework_posting.dto.PostingResponseDto;
-import hanghae.homework_posting.entity.Comment;
-import hanghae.homework_posting.entity.Member;
-import hanghae.homework_posting.entity.MemberRole;
-import hanghae.homework_posting.entity.Posting;
+import hanghae.homework_posting.entity.*;
 import hanghae.homework_posting.jwt.JwtUtil;
 import hanghae.homework_posting.repository.CommentRepostiory;
 import hanghae.homework_posting.repository.MemberRepository;
+import hanghae.homework_posting.repository.PostingLikesRepository;
 import hanghae.homework_posting.repository.PostingRepository;
-import hanghae.homework_posting.repository.PostingRepositoryImpl;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,8 +26,9 @@ public class PostingService {
     private final PostingRepository postingRepository;
     private final MemberRepository memberRepository;
     private final CommentRepostiory commentRepostiory;
-    private final PostingRepositoryImpl postingRepositoryImpl;
+    private final PostingLikesRepository likesRepository;
     private final JwtUtil jwtUtil;
+
 
 
     @Transactional
@@ -54,7 +51,7 @@ public class PostingService {
 
     @Transactional
     public List<PostingResponseDto> getPostings() {
-        return postingRepositoryImpl.getPostings();
+        return postingRepository.getPostings();
     }
 
     @Transactional
@@ -99,17 +96,39 @@ public class PostingService {
         Member member = memberRepository.findByUsername(username).get();
 
         if (username.equals(posting.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
-
-            List<Comment> comments = commentRepostiory.findAllByPostingId(id);
-            for (Comment comment : comments) {
-                commentRepostiory.delete(comment);
-            }
-
             postingRepository.delete(posting);
             return true;
         }
         return false;
     }
+
+    @Transactional             // 게시글 id
+    public boolean likePosting(Long id, HttpServletRequest request) {
+        Claims claims = getClaims(request);
+        String username = claims.getSubject();
+        Member member = memberRepository.findByUsername(username).get();
+        Posting posting = postingRepository.findById(id).get();
+
+        PostingLikes like = likesRepository.findByMemberIdAndPostingId(member.getId(), id);
+        if (like == null) { //좋아요 이력이 없음
+            PostingLikes postingLikes = new PostingLikes(posting, member);
+            likesRepository.save(postingLikes); //좋아요 테이블에 저장
+            postingRepository.likePosting(id);   // 게시글 db에 좋아요갯수 추가
+            return true;
+        }
+        if (like.getStatus() == 0) {  //좋아요 X
+            likesRepository.likePosting(like.getId());  // 좋아요 테이블에 상태 변경 1
+            postingRepository.likePosting(id);          // 게시글에 좋아요 갯수 추가
+            return true;
+        }
+        if (like.getStatus() == 1) {  // 좋아요 O
+            likesRepository.cancelLike(like.getId()); // 좋아요 테이블 상태 변경 0
+            postingRepository.cancelLike(id);         // 게시글에 좋아요 갯수 감소
+            return false;
+        }
+        return false;
+    }
+
     private Claims getClaims(HttpServletRequest request) {
         String token = jwtUtil.resolveToken(request);
         Claims claims = null;

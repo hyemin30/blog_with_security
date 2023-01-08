@@ -2,7 +2,6 @@ package hanghae.homework_posting.service;
 
 import hanghae.homework_posting.controller.EncryptionUtils;
 import hanghae.homework_posting.dto.MemberRequestDto;
-import hanghae.homework_posting.dto.MemberResponseDto;
 import hanghae.homework_posting.entity.Member;
 import hanghae.homework_posting.entity.MemberRole;
 import hanghae.homework_posting.jwt.JwtUtil;

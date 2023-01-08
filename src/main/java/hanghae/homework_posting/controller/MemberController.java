@@ -1,10 +1,7 @@
 package hanghae.homework_posting.controller;
 
 import hanghae.homework_posting.dto.MemberRequestDto;
-import hanghae.homework_posting.dto.MemberResponseDto;
 import hanghae.homework_posting.service.MemberService;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,8 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @RestController

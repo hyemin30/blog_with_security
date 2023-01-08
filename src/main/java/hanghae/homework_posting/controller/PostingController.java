@@ -58,6 +58,14 @@ public class PostingController {
         return new ResponseEntity<>("삭제 성공", HttpStatus.CREATED);
     }
 
+    @PostMapping("/postings/{id}/like")
+    public ResponseEntity<String> likePosting(@PathVariable Long id, HttpServletRequest request) {
+        if (!postingService.likePosting(id, request)) {
+            return new ResponseEntity<>("좋아요 취소", HttpStatus.OK);
+        }
+        return new ResponseEntity<>("좋아요 성공", HttpStatus.OK);
+    }
+
     @Data
     @AllArgsConstructor
     static class Result<T> { //<T> 이렇게 감싸서 반환하면 배열타입보다 유연성이 생겨서 좋음

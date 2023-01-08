@@ -2,12 +2,9 @@ package hanghae.homework_posting.service;
 
 import hanghae.homework_posting.dto.CommentRequestDto;
 import hanghae.homework_posting.dto.CommentResponseDto;
-import hanghae.homework_posting.dto.PostingRequestDto;
-import hanghae.homework_posting.entity.Comment;
-import hanghae.homework_posting.entity.Member;
-import hanghae.homework_posting.entity.MemberRole;
-import hanghae.homework_posting.entity.Posting;
+import hanghae.homework_posting.entity.*;
 import hanghae.homework_posting.jwt.JwtUtil;
+import hanghae.homework_posting.repository.CommentLikesRepository;
 import hanghae.homework_posting.repository.CommentRepostiory;
 import hanghae.homework_posting.repository.MemberRepository;
 import hanghae.homework_posting.repository.PostingRepository;
@@ -17,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +22,7 @@ public class CommentService {
     private final CommentRepostiory commentRepostiory;
     private final PostingRepository postingRepository;
     private final MemberRepository memberRepository;
+    private final CommentLikesRepository likesRepository;
     private final JwtUtil jwtUtil;
 
     @Transactional
@@ -72,6 +69,33 @@ public class CommentService {
         if (username.equals(comment.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
             commentRepostiory.delete(comment);
             return true;
+        }
+        return false;
+    }
+
+    @Transactional              // 댓글 id
+    public boolean likeComment(Long id, HttpServletRequest request) {
+        Claims claims = getClaims(request);
+        String username = claims.getSubject();
+        Member member = memberRepository.findByUsername(username).get();
+        Comment comment = getComment(id);
+
+        CommentLikes like = likesRepository.findByMemberIdAndCommentId(member.getId(), id);
+        if (like == null) {
+            CommentLikes commentLikes = new CommentLikes(comment, member);
+            likesRepository.save(commentLikes);     //좋아요 테이블에 저장
+            commentRepostiory.likeComment(id);      // 댓글 테이블에 좋아요갯수 추가
+            return true;
+        }
+        if (like.getStatus() == 0) {  //좋아요 X
+            likesRepository.likeComment(like.getId());  // 좋아요 테이블에 상태 변경 1
+            commentRepostiory.likeComment(id);          // 댓글에 좋아요 갯수 추가
+            return true;
+        }
+        if (like.getStatus() == 1) {  // 좋아요 O
+            likesRepository.cancelLike(like.getId()); // 좋아요 테이블 상태 변경 0
+            commentRepostiory.cancelLike(id);         // 댓글에 좋아요 갯수 감소
+            return false;
         }
         return false;
     }

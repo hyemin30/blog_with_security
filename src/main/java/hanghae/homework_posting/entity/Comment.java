@@ -1,11 +1,13 @@
 package hanghae.homework_posting.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import hanghae.homework_posting.dto.CommentRequestDto;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -30,6 +32,12 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id")
     private Member member;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.REMOVE)
+    private List<CommentLikes> likes = new ArrayList<>();
+
+    private Integer likeCount = 0;
 
     public Comment(CommentRequestDto commentDto) {
         content = commentDto.getContent();

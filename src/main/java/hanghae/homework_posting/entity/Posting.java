@@ -2,7 +2,6 @@ package hanghae.homework_posting.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import hanghae.homework_posting.dto.PostingRequestDto;
-import io.swagger.annotations.ApiParam;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -30,8 +29,14 @@ public class Posting extends TimeStamped {
     @JoinColumn(name = "member_id")
     private Member member;
 
-    @OneToMany(mappedBy = "posting")
+    @OneToMany(mappedBy = "posting", cascade = CascadeType.REMOVE)
     private List<Comment> comments = new ArrayList<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "posting", cascade = CascadeType.REMOVE)
+    private List<PostingLikes> likes = new ArrayList<>();
+
+    private Integer likeCount = 0;
 
     public Posting(PostingRequestDto requestDto, Member member) {
         this.member = member;
