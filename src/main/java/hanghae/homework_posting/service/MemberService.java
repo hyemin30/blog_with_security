@@ -8,6 +8,7 @@ import hanghae.homework_posting.jwt.JwtUtil;
 import hanghae.homework_posting.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final JwtUtil jwtUtil;
     private static final String ADMIN_TOKEN = "AAABnvxRVklrnYxKZ0aHgTBcXukeZygoC";
+    private final PasswordEncoder passwordEncoder;
 
 
     @Transactional
@@ -46,7 +48,8 @@ public class MemberService {
         }
 
         //암호화한 비밀번호 저장
-        requestDto.setPassword(EncryptionUtils.encryptSHA256(requestDto.getPassword()));
+//        requestDto.setPassword(EncryptionUtils.encryptSHA256(requestDto.getPassword()));
+        requestDto.setPassword(passwordEncoder.encode(requestDto.getPassword()));
         requestDto.setRole(role);
         Member member = new Member(requestDto);
         Member findMember = memberRepository.save(member);
@@ -56,11 +59,15 @@ public class MemberService {
     @Transactional(readOnly = true)
     public boolean login(MemberRequestDto requestDto, HttpServletResponse response) {
         String username = requestDto.getUsername();
-        String password = EncryptionUtils.encryptSHA256(requestDto.getPassword());
+//        String password = EncryptionUtils.encryptSHA256(requestDto.getPassword());
 
+        String password = passwordEncoder.encode(requestDto.getPassword());
         Member member = memberRepository.findByUsername(username).orElse(new Member());
 
-        if (!member.getPassword().equals(password) || member.getPassword().equals("0")) {
+//        if (!member.getPassword().equals(password) || member.getPassword().equals("0")) {
+//            return false;
+//        }
+        if (passwordEncoder.matches(password, member.getPassword())) {
             return false;
         }
 
