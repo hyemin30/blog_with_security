@@ -1,27 +1,33 @@
 package hanghae.homework_posting.repository.custom_comment;
 
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import static hanghae.homework_posting.entity.QComment.comment;
 
 public class CustomCommentRepositoryImpl implements CustomCommentRepository {
 
-    @PersistenceContext
-    EntityManager em;
+    private final JPAQueryFactory queryFactory;
+
+    public CustomCommentRepositoryImpl(EntityManager em) {
+        queryFactory = new JPAQueryFactory(em);
+    }
 
     @Override
     public void cancelLike(Long id) {
-        em.createQuery("update Comment c set c.likeCount = c.likeCount - 1" +
-                        " where c.id = :id")
-                .setParameter("id", id)
-                .executeUpdate();
-
+        queryFactory
+                .update(comment)
+                .set(comment.likeCount, comment.likeCount.add(-1))
+                .where(comment.id.eq(id))
+                .execute();
     }
+
     @Override
     public void likeComment(Long id) {
-        em.createQuery("update Comment c set c.likeCount = c.likeCount + 1" +
-                        " where c.id = :id")
-                .setParameter("id", id)
-                .executeUpdate();
+        queryFactory
+                .update(comment)
+                .set(comment.likeCount, comment.likeCount.add(1))
+                .where(comment.id.eq(id))
+                .execute();
     }
 }
 

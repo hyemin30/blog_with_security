@@ -18,13 +18,13 @@ public class PostingResponseDto {
 
     private Long id;
     private int likes;
-    private List<CommentResponseDto> comments;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private LocalDateTime createdAt;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private LocalDateTime modifiedAt;
 
+    private List<CommentResponseDto> comments;
 
     public PostingResponseDto(Long id, Posting posting) {
         this.id = id;
@@ -51,8 +51,5 @@ public class PostingResponseDto {
                 .map(comment -> new CommentResponseDto(comment))
                 .collect(Collectors.toList());
         likes = posting.getLikeCount();
-
     }
-
-
 }
