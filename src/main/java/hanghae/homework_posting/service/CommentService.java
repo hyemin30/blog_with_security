@@ -5,7 +5,7 @@ import hanghae.homework_posting.dto.CommentResponseDto;
 import hanghae.homework_posting.entity.*;
 import hanghae.homework_posting.jwt.JwtUtil;
 import hanghae.homework_posting.repository.CommentLikesRepository;
-import hanghae.homework_posting.repository.CommentRepostiory;
+import hanghae.homework_posting.repository.CommentRepository;
 import hanghae.homework_posting.repository.MemberRepository;
 import hanghae.homework_posting.repository.PostingRepository;
 import io.jsonwebtoken.Claims;
@@ -19,36 +19,34 @@ import javax.servlet.http.HttpServletRequest;
 @RequiredArgsConstructor
 public class CommentService {
 
-    private final CommentRepostiory commentRepostiory;
+    private final CommentRepository commentRepository;
     private final PostingRepository postingRepository;
     private final MemberRepository memberRepository;
     private final CommentLikesRepository likesRepository;
     private final JwtUtil jwtUtil;
 
     @Transactional
-    public CommentResponseDto createComment(Long id, CommentRequestDto requestDto, HttpServletRequest request) {
-        Claims claims = getClaims(request);
+    public CommentResponseDto createComment(Long postingId, CommentRequestDto requestDto, HttpServletRequest request) {
+        Claims claims = validateToken(request);
         String username = claims.getSubject();
 
-        Member member = new Member();
-        member = getMember(claims, member);
-
-        Posting posting = getPosting(id);
-
+        Member member = findMember(username);
+        Posting posting = findPosting(postingId);
 
         Comment comment = new Comment(requestDto);
         comment.createComment(posting, comment, member);
-        commentRepostiory.save(comment);
+
+        commentRepository.save(comment);
         return new CommentResponseDto(comment);
     }
 
     @Transactional
-    public CommentResponseDto update(Long id, CommentRequestDto requestDto, HttpServletRequest request) {
-        Claims claims = getClaims(request);
+    public CommentResponseDto update(Long commentId, CommentRequestDto requestDto, HttpServletRequest request) {
+        Claims claims = validateToken(request);
         String username = claims.getSubject();
-        Comment comment = getComment(id);   // comment id로 댓글 조회
 
-        Member member = memberRepository.findByUsername(username).get();
+        Comment comment = findComment(commentId);
+        Member member = findMember(username);
 
         if (username.equals(comment.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
             comment.update(requestDto);
@@ -58,78 +56,67 @@ public class CommentService {
     }
 
     @Transactional
-    public boolean deleteComment(Long id, HttpServletRequest request) {
-        Claims claims = getClaims(request);
+    public boolean deleteComment(Long commentId, HttpServletRequest request) {
+        Claims claims = validateToken(request);
         String username = claims.getSubject();
 
-        Comment comment = getComment(id);
-
-        Member member = memberRepository.findByUsername(username).get();
+        Comment comment = findComment(commentId);
+        Member member = findMember(username);
 
         if (username.equals(comment.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
-            commentRepostiory.delete(comment);
+            commentRepository.delete(comment);
             return true;
         }
         return false;
     }
 
-    @Transactional              // 댓글 id
-    public boolean likeComment(Long id, HttpServletRequest request) {
-        Claims claims = getClaims(request);
+    @Transactional
+    public boolean likeComment(Long commentId, HttpServletRequest request) {
+        Claims claims = validateToken(request);
         String username = claims.getSubject();
-        Member member = memberRepository.findByUsername(username).get();
-        Comment comment = getComment(id);
 
-        CommentLikes like = likesRepository.findByMemberIdAndCommentId(member.getId(), id);
-        if (like == null) {
+        Member member = findMember(username);
+        Comment comment = findComment(commentId);
+
+        CommentLikes like = likesRepository.findByMemberIdAndCommentId(member.getId(), commentId);
+        if (like == null) { // 좋아요 이력이 아예 없으면
             CommentLikes commentLikes = new CommentLikes(comment, member);
             likesRepository.save(commentLikes);     //좋아요 테이블에 저장
-            commentRepostiory.likeComment(id);      // 댓글 테이블에 좋아요갯수 추가
+            commentRepository.likeComment(commentId);      // 댓글 테이블에 좋아요갯수 추가
             return true;
         }
-        if (like.getStatus() == 0) {  //좋아요 X
+        if (like.getStatus() == 0) {  //좋아요 취소 상태
             likesRepository.likeComment(like.getId());  // 좋아요 테이블에 상태 변경 1
-            commentRepostiory.likeComment(id);          // 댓글에 좋아요 갯수 추가
+            commentRepository.likeComment(commentId);          // 댓글에 좋아요 갯수 추가
             return true;
         }
-        if (like.getStatus() == 1) {  // 좋아요 O
+        if (like.getStatus() == 1) {  // 이미 좋아요 한 상태
             likesRepository.cancelLike(like.getId()); // 좋아요 테이블 상태 변경 0
-            commentRepostiory.cancelLike(id);         // 댓글에 좋아요 갯수 감소
+            commentRepository.cancelLike(commentId);         // 댓글에 좋아요 갯수 감소
             return false;
         }
         return false;
     }
 
-    private Comment getComment(Long id) {
-        Comment comment = commentRepostiory.findById(id).orElseThrow(
+    private Member findMember(String username) {
+        return memberRepository.findByUsername(username).orElseThrow(
+                () -> new IllegalArgumentException("사용자가 존재하지 않습니다")
+        );
+    }
+
+    private Posting findPosting(Long postingId) {
+        return postingRepository.findById(postingId).orElseThrow(
+                () -> new IllegalArgumentException("게시글이 존재하지 않습니다")
+        );
+    }
+
+    private Comment findComment(Long commentId) {
+        return commentRepository.findById(commentId).orElseThrow(
                 () -> new IllegalArgumentException("존재하지 않는 댓글입니다")
         );
-        return comment;
     }
 
-    private Posting getPosting(Long id) {
-        Posting posting = postingRepository.findById(id).orElseThrow(
-                () -> new IllegalArgumentException("존재하지 않는 게시글입니다")
-        );
-        return posting;
-    }
-
-    /*
-        getMember : 게시글 작성자를 가져옴
-        param member : 댓글 작성자
-     */
-    private Member getMember(Claims claims, Member member) {
-        try {
-            member = memberRepository.findByUsername(claims.getSubject()).orElseThrow(
-                    () -> new IllegalArgumentException("사용자가 존재하지 않습니다")
-            );
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-        }
-        return member;
-    }
-
-    private Claims getClaims(HttpServletRequest request) {
+    private Claims validateToken(HttpServletRequest request) {
         String token = jwtUtil.resolveToken(request);
         Claims claims = null;
 
@@ -142,6 +129,4 @@ public class CommentService {
         }
         return claims;
     }
-
-
 }

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -29,13 +30,10 @@ public class MemberService {
     @Transactional
     public boolean createMember(MemberRequestDto requestDto) {
 
-        List<Member> members = memberRepository.findAll();
-
         //중복 사용자 검색
-        for (Member member : members) {
-            if (member.getUsername().equals(requestDto.getUsername())) {
-                return false;
-            }
+        Optional<Member> findMember = memberRepository.findByUsername(requestDto.getUsername());
+        if (findMember.isPresent()) {
+            return false;
         }
 
         // 사용자 ROLE 확인
@@ -48,32 +46,28 @@ public class MemberService {
         }
 
         //암호화한 비밀번호 저장
-//        requestDto.setPassword(EncryptionUtils.encryptSHA256(requestDto.getPassword()));
         requestDto.setPassword(passwordEncoder.encode(requestDto.getPassword()));
         requestDto.setRole(role);
+
         Member member = new Member(requestDto);
-        Member findMember = memberRepository.save(member);
+        memberRepository.save(member);
         return true;
     }
 
     @Transactional(readOnly = true)
     public boolean login(MemberRequestDto requestDto, HttpServletResponse response) {
         String username = requestDto.getUsername();
-//        String password = EncryptionUtils.encryptSHA256(requestDto.getPassword());
+        String password = requestDto.getPassword();
 
-        String password = passwordEncoder.encode(requestDto.getPassword());
+        //사용자 확인
         Member member = memberRepository.findByUsername(username).orElse(new Member());
 
-//        if (!member.getPassword().equals(password) || member.getPassword().equals("0")) {
-//            return false;
-//        }
-        if (passwordEncoder.matches(password, member.getPassword())) {
+        //비밀번호 확인
+        if (!passwordEncoder.matches(password, member.getPassword())) {
             return false;
         }
 
         response.addHeader(JwtUtil.AUTHORIZATION_HEADER, jwtUtil.createToken(member.getUsername()));
         return true;
     }
-
-
 }

@@ -22,7 +22,6 @@ public class CustomCommentRepositoryImpl implements CustomCommentRepository {
                         " where c.id = :id")
                 .setParameter("id", id)
                 .executeUpdate();
-
     }
 }
 

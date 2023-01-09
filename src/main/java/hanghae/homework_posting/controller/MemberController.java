@@ -33,8 +33,8 @@ public class MemberController {
         requestDto.setPassword(EncryptionUtils.encryptSHA256(requestDto.getPassword()));
         if (!memberService.createMember(requestDto)) {
             return new ResponseEntity<>("중복된 아이디가 있습니다", HttpStatus.BAD_REQUEST);
-
         }
+
         return new ResponseEntity<>("회원가입 성공", HttpStatus.CREATED);
     }
 

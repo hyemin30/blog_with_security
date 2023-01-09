@@ -4,7 +4,6 @@ import hanghae.homework_posting.dto.PostingRequestDto;
 import hanghae.homework_posting.dto.PostingResponseDto;
 import hanghae.homework_posting.entity.*;
 import hanghae.homework_posting.jwt.JwtUtil;
-import hanghae.homework_posting.repository.CommentRepostiory;
 import hanghae.homework_posting.repository.MemberRepository;
 import hanghae.homework_posting.repository.PostingLikesRepository;
 import hanghae.homework_posting.repository.PostingRepository;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -25,58 +23,48 @@ public class PostingService {
 
     private final PostingRepository postingRepository;
     private final MemberRepository memberRepository;
-    private final CommentRepostiory commentRepostiory;
     private final PostingLikesRepository likesRepository;
     private final JwtUtil jwtUtil;
 
-
-
     @Transactional
     public Long createPosting(PostingRequestDto requestDto, HttpServletRequest request) {
-        Claims claims = getClaims(request);
-        Member member = new Member();
-        try {
-            member = memberRepository.findByUsername(claims.getSubject()).orElseThrow(
-                    () -> new IllegalArgumentException("사용자가 존재하지 않습니다")
-            );
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-        }
 
-        Posting posting = new Posting(requestDto, member);
+        //토큰 검증
+        Claims claims = validateToken(request);
+
+        //사용자 찾기
+        Member member = findMember(claims.getSubject());
+        
+        Posting posting = new Posting(requestDto, member);        
         posting.createPosting(member);
+        
         postingRepository.save(posting);
         return posting.getId();
     }
 
+    //전체 게시글 조회
     @Transactional
     public List<PostingResponseDto> getPostings() {
         return postingRepository.getPostings();
     }
 
+    //게시글 1개 조회
     @Transactional
-    public List<Object> getPosting(Long id) {
-        Posting posting = postingRepository.findById(id).orElseThrow(
-                () -> new IllegalArgumentException("게시글이 존재하지 않습니다")
-        );
-
-        List<Object> responses = new ArrayList<>();
-
-        responses.add(new PostingResponseDto(posting));
-        return responses;
+    public PostingResponseDto getPosting(Long id) {
+        Posting posting = findPosting(id);
+        return new PostingResponseDto(posting);
     }
 
     @Transactional
     public PostingResponseDto update(Long id, PostingRequestDto requestDto, HttpServletRequest request) {
-        Claims claims = getClaims(request);
+        //토큰 검증
+        Claims claims = validateToken(request);
         String username = claims.getSubject();
 
-        Posting posting = postingRepository.findById(id).orElseThrow(
-                () -> new IllegalArgumentException("존재하지 않는 게시글입니다")
-        );
+        Posting posting = findPosting(id);
+        Member member = findMember(username);
 
-        Member member = memberRepository.findByUsername(username).get();
-
+        // 관리자 or 본인확인
         if (username.equals(posting.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
             posting.update(requestDto);
             return new PostingResponseDto(id, posting);
@@ -86,14 +74,12 @@ public class PostingService {
 
     @Transactional
     public boolean deletePosting(Long id, HttpServletRequest request) {
-        Claims claims = getClaims(request);
+        //토큰 검증
+        Claims claims = validateToken(request);
         String username = claims.getSubject();
 
-        Posting posting = postingRepository.findById(id).orElseThrow(
-                () -> new IllegalArgumentException("존재하지 않는 게시글입니다")
-        );
-
-        Member member = memberRepository.findByUsername(username).get();
+        Posting posting = findPosting(id);
+        Member member = findMember(username);
 
         if (username.equals(posting.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
             postingRepository.delete(posting);
@@ -102,34 +88,53 @@ public class PostingService {
         return false;
     }
 
-    @Transactional             // 게시글 id
-    public boolean likePosting(Long id, HttpServletRequest request) {
-        Claims claims = getClaims(request);
+    @Transactional
+    public boolean likePosting(Long postingId, HttpServletRequest request) {
+        // 토큰 검증
+        Claims claims = validateToken(request);
         String username = claims.getSubject();
-        Member member = memberRepository.findByUsername(username).get();
-        Posting posting = postingRepository.findById(id).get();
 
-        PostingLikes like = likesRepository.findByMemberIdAndPostingId(member.getId(), id);
-        if (like == null) { //좋아요 이력이 없음
+        //사용자 검색
+        Member member = findMember(username);
+
+        //게시글 검색
+        Posting posting = postingRepository.findById(postingId).orElseThrow(
+                () -> new IllegalArgumentException("존재하지 않는 게시글입니다")
+        );
+
+        PostingLikes like = likesRepository.findByMemberIdAndPostingId(member.getId(), postingId);
+        if (like == null) { //좋아요 테이블에 이력이 없음
             PostingLikes postingLikes = new PostingLikes(posting, member);
-            likesRepository.save(postingLikes); //좋아요 테이블에 저장
-            postingRepository.likePosting(id);   // 게시글 db에 좋아요갯수 추가
+            likesRepository.save(postingLikes);         //좋아요 테이블에 저장
+            postingRepository.likePosting(postingId);   // 게시글 테이블에 좋아요갯수 추가
             return true;
         }
-        if (like.getStatus() == 0) {  //좋아요 X
-            likesRepository.likePosting(like.getId());  // 좋아요 테이블에 상태 변경 1
-            postingRepository.likePosting(id);          // 게시글에 좋아요 갯수 추가
+        if (like.getStatus() == 0) {  //좋아요 테이블에 있으나 좋아요 취소 상태
+            likesRepository.likePosting(like.getId());  // 좋아요 테이블에 상태 변경 -> 1
+            postingRepository.likePosting(postingId);          // 게시글에 좋아요 갯수 추가
             return true;
         }
-        if (like.getStatus() == 1) {  // 좋아요 O
-            likesRepository.cancelLike(like.getId()); // 좋아요 테이블 상태 변경 0
-            postingRepository.cancelLike(id);         // 게시글에 좋아요 갯수 감소
+        if (like.getStatus() == 1) {  // 이미 좋아요 한 상태
+            likesRepository.cancelLike(like.getId()); // 좋아요 테이블 상태 변경 -> 0
+            postingRepository.cancelLike(postingId);         // 게시글에 좋아요 갯수 감소
             return false;
         }
         return false;
     }
 
-    private Claims getClaims(HttpServletRequest request) {
+    private Member findMember(String username) {
+        return memberRepository.findByUsername(username).orElseThrow(
+                () -> new IllegalArgumentException("존재하지 않는 사용자입니다")
+        );
+    }
+
+    private Posting findPosting(Long postingId) {
+        return postingRepository.findById(postingId).orElseThrow(
+                () -> new IllegalArgumentException("게시글이 존재하지 않습니다")
+        );
+    }
+
+    private Claims validateToken(HttpServletRequest request) {
         String token = jwtUtil.resolveToken(request);
         Claims claims = null;
 
@@ -147,6 +152,4 @@ public class PostingService {
     public void deleteAll() {
         postingRepository.deleteAll();
     }
-
-
 }

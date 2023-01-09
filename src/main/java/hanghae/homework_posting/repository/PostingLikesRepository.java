@@ -9,7 +9,4 @@ import java.util.List;
 public interface PostingLikesRepository extends JpaRepository<PostingLikes, Long>, CustomPostingLikesRepository {
 
     PostingLikes findByMemberIdAndPostingId(Long memberId, Long postingId);
-
-    List<PostingLikes> findAllByPostingId(Long postingId);
-
 }

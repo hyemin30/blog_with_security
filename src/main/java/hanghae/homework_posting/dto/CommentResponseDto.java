@@ -14,6 +14,7 @@ public class CommentResponseDto {
     private String content;
     private String postingMember;
     private String commentMember;
+    private int likes;
 
 
     public CommentResponseDto(Comment comment) {
@@ -21,6 +22,8 @@ public class CommentResponseDto {
         content = comment.getContent();
         postingMember = comment.getPosting().getMember().getUsername();
         commentMember = comment.getMember().getUsername();
+        likes = comment.getLikeCount();
+
     }
 }
 

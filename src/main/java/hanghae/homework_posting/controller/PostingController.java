@@ -27,7 +27,7 @@ public class PostingController {
     }
 
     @PostMapping("/postings")
-    public List<Object> createPosting(@RequestBody PostingRequestDto requestDto, HttpServletRequest request) {
+    public PostingResponseDto createPosting(@RequestBody PostingRequestDto requestDto, HttpServletRequest request) {
         Long id = postingService.createPosting(requestDto, request);
         return postingService.getPosting(id);
     }
@@ -46,7 +46,7 @@ public class PostingController {
     }
 
     @GetMapping("/postings/{id}")
-    public List<Object> getPosting(@PathVariable Long id) {
+    public PostingResponseDto getPosting(@PathVariable Long id) {
         return postingService.getPosting(id);
     }
 

@@ -17,6 +17,7 @@ public class PostingResponseDto {
     private String content;
 
     private Long id;
+    private int likes;
     private List<CommentResponseDto> comments;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
@@ -35,6 +36,8 @@ public class PostingResponseDto {
         comments = posting.getComments().stream()
                 .map(comment -> new CommentResponseDto(comment))
                 .collect(Collectors.toList());
+        likes = posting.getLikeCount();
+
     }
 
     public PostingResponseDto(Posting posting) {
@@ -47,6 +50,7 @@ public class PostingResponseDto {
         comments = posting.getComments().stream()
                 .map(comment -> new CommentResponseDto(comment))
                 .collect(Collectors.toList());
+        likes = posting.getLikeCount();
 
     }
 
