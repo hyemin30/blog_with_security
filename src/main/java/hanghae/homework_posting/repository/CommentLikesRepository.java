@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CommentLikesRepository extends JpaRepository<CommentLikes, Long>, CustomCommentLikesRepository {
 
-    CommentLikes findByMemberIdAndCommentId(Long memberId, Long comentId);
+    CommentLikes findByMemberIdAndCommentId(Long memberId, Long commentId);
 }

@@ -3,9 +3,7 @@ package hanghae.homework_posting.controller;
 import hanghae.homework_posting.dto.PostingRequestDto;
 import hanghae.homework_posting.dto.PostingResponseDto;
 import hanghae.homework_posting.service.PostingService;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,8 +26,7 @@ public class PostingController {
 
     @PostMapping("/postings")
     public PostingResponseDto createPosting(@RequestBody PostingRequestDto requestDto, HttpServletRequest request) {
-        Long id = postingService.createPosting(requestDto, request);
-        return postingService.getPosting(id);
+        return postingService.createPosting(requestDto, request);
     }
 
     @GetMapping("/postings")
@@ -52,9 +49,7 @@ public class PostingController {
 
     @DeleteMapping("/postings/{id}")
     public ResponseEntity<String> deletePosting(@PathVariable Long id, HttpServletRequest request) {
-        if (!postingService.deletePosting(id, request)) {
-            return new ResponseEntity<>("본인의 글만 삭제할 수 있습니다", HttpStatus.BAD_REQUEST);
-        }
+        postingService.deletePosting(id, request);
         return new ResponseEntity<>("삭제 성공", HttpStatus.CREATED);
     }
 
@@ -66,7 +61,8 @@ public class PostingController {
         return new ResponseEntity<>("좋아요 성공", HttpStatus.OK);
     }
 
-    @Data
+    @Getter
+    @Setter
     @AllArgsConstructor
     static class Result<T> { //<T> 이렇게 감싸서 반환하면 배열타입보다 유연성이 생겨서 좋음
         private T data;

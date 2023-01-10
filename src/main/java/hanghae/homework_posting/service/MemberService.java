@@ -1,6 +1,5 @@
 package hanghae.homework_posting.service;
 
-import hanghae.homework_posting.controller.EncryptionUtils;
 import hanghae.homework_posting.dto.MemberRequestDto;
 import hanghae.homework_posting.entity.Member;
 import hanghae.homework_posting.entity.MemberRole;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletResponse;
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -33,20 +31,15 @@ public class MemberService {
         //중복 사용자 검색
         Optional<Member> findMember = memberRepository.findByUsername(requestDto.getUsername());
         if (findMember.isPresent()) {
-            return false;
+            throw new IllegalArgumentException("중복 사용자가 있습니다");
         }
 
         // 사용자 ROLE 확인
         MemberRole role = MemberRole.USER;
-        if (requestDto.getRole().equals(MemberRole.ADMIN)) {
-            if (!requestDto.getAdminToken().equals(ADMIN_TOKEN)) {
-                throw new IllegalArgumentException("관리자 암호가 틀려 등록이 불가능합니다.");
-            }
-            role = MemberRole.ADMIN;
+        if (requestDto.getRole().equals(MemberRole.ADMIN) && !requestDto.getAdminToken().equals(ADMIN_TOKEN)) {
+            throw new IllegalArgumentException("관리자 암호가 틀려 등록이 불가능합니다.");
         }
-
-        //암호화한 비밀번호 저장
-        requestDto.setPassword(passwordEncoder.encode(requestDto.getPassword()));
+        role = MemberRole.ADMIN;
         requestDto.setRole(role);
 
         Member member = new Member(requestDto);
@@ -60,11 +53,13 @@ public class MemberService {
         String password = requestDto.getPassword();
 
         //사용자 확인
-        Member member = memberRepository.findByUsername(username).orElse(new Member());
+        Member member = memberRepository.findByUsername(username).orElseThrow(
+                () -> new IllegalArgumentException("아이디가 존재하지 않습니다")
+        );
 
         //비밀번호 확인
         if (!passwordEncoder.matches(password, member.getPassword())) {
-            return false;
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다");
         }
 
         response.addHeader(JwtUtil.AUTHORIZATION_HEADER, jwtUtil.createToken(member.getUsername()));

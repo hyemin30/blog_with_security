@@ -85,17 +85,16 @@ public class CommentService {
             commentRepository.likeComment(commentId);      // 댓글 테이블에 좋아요갯수 추가
             return true;
         }
+
         if (like.getStatus() == 0) {  //좋아요 취소 상태
             likesRepository.likeComment(like.getId());  // 좋아요 테이블에 상태 변경 1
             commentRepository.likeComment(commentId);          // 댓글에 좋아요 갯수 추가
             return true;
-        }
-        if (like.getStatus() == 1) {  // 이미 좋아요 한 상태
+        } else {
             likesRepository.cancelLike(like.getId()); // 좋아요 테이블 상태 변경 0
             commentRepository.cancelLike(commentId);         // 댓글에 좋아요 갯수 감소
             return false;
         }
-        return false;
     }
 
     private Member findMember(String username) {
@@ -118,15 +117,8 @@ public class CommentService {
 
     private Claims validateToken(HttpServletRequest request) {
         String token = jwtUtil.resolveToken(request);
-        Claims claims = null;
 
-        if (token != null) {
-            if (jwtUtil.validateToken(token)) {
-                claims = jwtUtil.getUserInfoFromToken(token);
-            } else {
-                throw new IllegalArgumentException("토큰이 유효하지 않습니다");
-            }
-        }
-        return claims;
+        jwtUtil.validateToken(token);
+        return jwtUtil.getUserInfoFromToken(token);
     }
 }

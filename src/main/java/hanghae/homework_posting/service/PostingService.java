@@ -27,8 +27,7 @@ public class PostingService {
     private final JwtUtil jwtUtil;
 
     @Transactional
-    public Long createPosting(PostingRequestDto requestDto, HttpServletRequest request) {
-
+    public PostingResponseDto createPosting(PostingRequestDto requestDto, HttpServletRequest request) {
         //토큰 검증
         Claims claims = validateToken(request);
 
@@ -39,7 +38,7 @@ public class PostingService {
         posting.createPosting(member);
         
         postingRepository.save(posting);
-        return posting.getId();
+        return new PostingResponseDto(posting);
     }
 
     //전체 게시글 조회
@@ -73,7 +72,7 @@ public class PostingService {
     }
 
     @Transactional
-    public boolean deletePosting(Long id, HttpServletRequest request) {
+    public void deletePosting(Long id, HttpServletRequest request) {
         //토큰 검증
         Claims claims = validateToken(request);
         String username = claims.getSubject();
@@ -83,9 +82,9 @@ public class PostingService {
 
         if (username.equals(posting.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
             postingRepository.delete(posting);
-            return true;
+            return;
         }
-        return false;
+        throw new IllegalArgumentException("본인의 글만 삭제할 수 있습니다");
     }
 
     @Transactional
@@ -109,17 +108,16 @@ public class PostingService {
             postingRepository.likePosting(postingId);   // 게시글 테이블에 좋아요갯수 추가
             return true;
         }
+
         if (like.getStatus() == 0) {  //좋아요 테이블에 있으나 좋아요 취소 상태
             likesRepository.likePosting(like.getId());  // 좋아요 테이블에 상태 변경 -> 1
             postingRepository.likePosting(postingId);          // 게시글에 좋아요 갯수 추가
             return true;
-        }
-        if (like.getStatus() == 1) {  // 이미 좋아요 한 상태
+        } else {
             likesRepository.cancelLike(like.getId()); // 좋아요 테이블 상태 변경 -> 0
             postingRepository.cancelLike(postingId);         // 게시글에 좋아요 갯수 감소
             return false;
         }
-        return false;
     }
 
     private Member findMember(String username) {
@@ -136,16 +134,9 @@ public class PostingService {
 
     private Claims validateToken(HttpServletRequest request) {
         String token = jwtUtil.resolveToken(request);
-        Claims claims = null;
 
-        if (token != null) {
-            if (jwtUtil.validateToken(token)) {
-                claims = jwtUtil.getUserInfoFromToken(token);
-            } else {
-                throw new IllegalArgumentException("토큰이 유효하지 않습니다");
-            }
-        }
-        return claims;
+        jwtUtil.validateToken(token);
+        return jwtUtil.getUserInfoFromToken(token);
     }
 
     @Transactional
