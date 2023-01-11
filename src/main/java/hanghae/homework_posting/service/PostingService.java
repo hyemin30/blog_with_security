@@ -8,6 +8,7 @@ import hanghae.homework_posting.repository.MemberRepository;
 import hanghae.homework_posting.repository.PostingLikesRepository;
 import hanghae.homework_posting.repository.PostingRepository;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,7 @@ public class PostingService {
     @Transactional
     public PostingResponseDto createPosting(PostingRequestDto requestDto, HttpServletRequest request) {
         //토큰 검증
-        Claims claims = validateToken(request);
+        Claims claims = getClaims(request);
 
         //사용자 찾기
         Member member = findMember(claims.getSubject());
@@ -56,15 +57,15 @@ public class PostingService {
 
     @Transactional
     public PostingResponseDto update(Long id, PostingRequestDto requestDto, HttpServletRequest request) {
-        //토큰 검증
-        Claims claims = validateToken(request);
+       //사용자 검증
+        Claims claims = getClaims(request);
         String username = claims.getSubject();
+        String role = (String) claims.get("role");
 
         Posting posting = findPosting(id);
-        Member member = findMember(username);
 
         // 관리자 or 본인확인
-        if (username.equals(posting.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
+        if (username.equals(posting.getMember().getUsername()) || role.equals(MemberRole.ADMIN.toString())) {
             posting.update(requestDto);
             return new PostingResponseDto(id, posting);
         }
@@ -74,13 +75,13 @@ public class PostingService {
     @Transactional
     public void deletePosting(Long id, HttpServletRequest request) {
         //토큰 검증
-        Claims claims = validateToken(request);
+        Claims claims = getClaims(request);
         String username = claims.getSubject();
+        String role = (String) claims.get("role");
 
         Posting posting = findPosting(id);
-        Member member = findMember(username);
 
-        if (username.equals(posting.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
+        if (username.equals(posting.getMember().getUsername()) || role.equals(MemberRole.ADMIN.toString())) {
             postingRepository.delete(posting);
             return;
         }
@@ -90,7 +91,7 @@ public class PostingService {
     @Transactional
     public boolean likePosting(Long postingId, HttpServletRequest request) {
         // 토큰 검증
-        Claims claims = validateToken(request);
+        Claims claims = getClaims(request);
         String username = claims.getSubject();
 
         //사용자 검색
@@ -132,10 +133,10 @@ public class PostingService {
         );
     }
 
-    private Claims validateToken(HttpServletRequest request) {
+    private Claims getClaims(HttpServletRequest request) {
         String token = jwtUtil.resolveToken(request);
 
-        jwtUtil.validateToken(token);
+//        jwtUtil.validateToken(token);
         return jwtUtil.getUserInfoFromToken(token);
     }
 

@@ -27,7 +27,7 @@ public class CommentService {
 
     @Transactional
     public CommentResponseDto createComment(Long postingId, CommentRequestDto requestDto, HttpServletRequest request) {
-        Claims claims = validateToken(request);
+        Claims claims = getClaims(request);
         String username = claims.getSubject();
 
         Member member = findMember(username);
@@ -42,13 +42,13 @@ public class CommentService {
 
     @Transactional
     public CommentResponseDto update(Long commentId, CommentRequestDto requestDto, HttpServletRequest request) {
-        Claims claims = validateToken(request);
+        Claims claims = getClaims(request);
         String username = claims.getSubject();
+        String role = (String) claims.get("role");
 
         Comment comment = findComment(commentId);
-        Member member = findMember(username);
 
-        if (username.equals(comment.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
+        if (username.equals(comment.getMember().getUsername()) || role.equals(MemberRole.ADMIN.toString())) {
             comment.update(requestDto);
             return new CommentResponseDto(comment);
         }
@@ -57,13 +57,13 @@ public class CommentService {
 
     @Transactional
     public boolean deleteComment(Long commentId, HttpServletRequest request) {
-        Claims claims = validateToken(request);
+        Claims claims = getClaims(request);
         String username = claims.getSubject();
+        String role = (String) claims.get("role");
 
         Comment comment = findComment(commentId);
-        Member member = findMember(username);
 
-        if (username.equals(comment.getMember().getUsername()) || member.getRole().equals(MemberRole.ADMIN)) {
+        if (username.equals(comment.getMember().getUsername()) || role.equals(MemberRole.ADMIN.toString())) {
             commentRepository.delete(comment);
             return true;
         }
@@ -72,7 +72,7 @@ public class CommentService {
 
     @Transactional
     public boolean likeComment(Long commentId, HttpServletRequest request) {
-        Claims claims = validateToken(request);
+        Claims claims = getClaims(request);
         String username = claims.getSubject();
 
         Member member = findMember(username);
@@ -115,10 +115,10 @@ public class CommentService {
         );
     }
 
-    private Claims validateToken(HttpServletRequest request) {
+    private Claims getClaims(HttpServletRequest request) {
         String token = jwtUtil.resolveToken(request);
 
-        jwtUtil.validateToken(token);
+//        jwtUtil.validateToken(token);
         return jwtUtil.getUserInfoFromToken(token);
     }
 }

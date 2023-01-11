@@ -1,6 +1,7 @@
 package hanghae.homework_posting.controller;
 
 import hanghae.homework_posting.dto.MemberRequestDto;
+import hanghae.homework_posting.jwt.JwtUtil;
 import hanghae.homework_posting.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
@@ -25,13 +27,14 @@ public class MemberController {
     private final PasswordEncoder passwordEncoder;
 
 
-    @RequestMapping(value = "/register", method = RequestMethod.POST)
+    @RequestMapping(value = "/register", method = RequestMethod.POST) //회원가입
     public ResponseEntity<String> createMember(@Valid @RequestBody MemberRequestDto requestDto, BindingResult bindingResult) {
 
         if (bindingResult.hasErrors()) {
             throw new IllegalArgumentException("아이디는 영문소문자, 숫자 4~10자리, 비밀번호는 영문대소문자, 숫자, 특수문자 8~15자리로 입력하세요");
         }
 
+        //비밀번호 암호화
         requestDto.setPassword(passwordEncoder.encode(requestDto.getPassword()));
         memberService.createMember(requestDto);
 
@@ -43,6 +46,11 @@ public class MemberController {
     public ResponseEntity<String> login(@RequestBody MemberRequestDto requestDto, HttpServletResponse response) {
 
         memberService.login(requestDto, response);
+
+//        Cookie cookie = new Cookie(JwtUtil.AUTHORIZATION_HEADER, createToken.substring(7));
+//        cookie.setPath("/");
+//        response.addCookie(cookie);
+
         return new ResponseEntity<>("로그인 성공", HttpStatus.CREATED);
     }
 }

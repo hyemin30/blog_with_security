@@ -1,6 +1,7 @@
 package hanghae.homework_posting.jwt;
 
 
+import hanghae.homework_posting.entity.MemberRole;
 import hanghae.homework_posting.security.UserDetailsServiceImpl;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -49,16 +50,21 @@ public class JwtUtil {
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
             return bearerToken.substring(7);
         }
-        return "";
+        return null;
     }
 
     // 토큰 생성
-    public String createToken(String username) {
+    public String createToken(String username, MemberRole role) {
         Date date = new Date();
+
+        Claims claims = Jwts.claims().setSubject(username);
+        claims.put("role", role);
 
         return BEARER_PREFIX +
                 Jwts.builder()
-                        .setSubject(username)
+//                        .setSubject(username)
+//                        .claim(AUTHORIZATION_KEY, role)
+                        .setClaims(claims)
                         .setExpiration(new Date(date.getTime() + TOKEN_TIME))
                         .setIssuedAt(date)
                         .signWith(key, signatureAlgorithm)

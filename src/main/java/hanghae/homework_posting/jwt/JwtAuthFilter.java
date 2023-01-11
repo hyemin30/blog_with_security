@@ -36,6 +36,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             Claims info = jwtUtil.getUserInfoFromToken(token);
             setAuthentication(info.getSubject());
         }
+
+        //토큰이 null 이고 인증이 필요 없으면 다음 필터로 넘어간다
         filterChain.doFilter(request,response);
     }
 
