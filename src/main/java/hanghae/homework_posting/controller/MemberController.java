@@ -47,10 +47,6 @@ public class MemberController {
 
         memberService.login(requestDto, response);
 
-//        Cookie cookie = new Cookie(JwtUtil.AUTHORIZATION_HEADER, createToken.substring(7));
-//        cookie.setPath("/");
-//        response.addCookie(cookie);
-
         return new ResponseEntity<>("로그인 성공", HttpStatus.CREATED);
     }
 }

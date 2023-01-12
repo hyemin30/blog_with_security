@@ -5,12 +5,15 @@ import hanghae.homework_posting.entity.Comment;
 import hanghae.homework_posting.entity.Member;
 import hanghae.homework_posting.entity.Posting;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Data
+@Setter
+@Getter
 public class PostingResponseDto {
     private String username;
     private String title;

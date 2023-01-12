@@ -1,6 +1,7 @@
 package hanghae.homework_posting.entity;
 
 import lombok.Getter;
+import lombok.Setter;
 
 import javax.persistence.*;
 
