@@ -48,7 +48,7 @@ public class CommentService {
 
         Comment comment = findComment(commentId);
 
-        if (username.equals(comment.getMember().getUsername()) || role.equals(MemberRole.ADMIN.toString())) {
+        if (isSelfOrAdmin(username, role, comment)) {
             comment.update(requestDto);
             return new CommentResponseDto(comment);
         }
@@ -63,7 +63,7 @@ public class CommentService {
 
         Comment comment = findComment(commentId);
 
-        if (username.equals(comment.getMember().getUsername()) || role.equals(MemberRole.ADMIN.toString())) {
+        if (isSelfOrAdmin(username, role, comment)) {
             commentRepository.delete(comment);
             return true;
         }
@@ -95,6 +95,10 @@ public class CommentService {
             commentRepository.cancelLike(commentId);         // 댓글에 좋아요 갯수 감소
             return false;
         }
+    }
+
+    private static boolean isSelfOrAdmin(String username, String role, Comment comment) {
+        return username.equals(comment.getMember().getUsername()) || role.equals(MemberRole.ADMIN.toString());
     }
 
     private Member findMember(String username) {

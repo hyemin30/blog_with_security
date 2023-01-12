@@ -36,11 +36,11 @@ public class MemberService {
         }
         // 사용자 ROLE 확인
         MemberRole role = MemberRole.USER;
-        if (requestDto.getRole().equals(MemberRole.ADMIN) && !requestDto.getAdminToken().equals(ADMIN_TOKEN)) {
+        if (isAdminRole(requestDto) && !isAdminTokenValid(requestDto)) {
             throw new IllegalArgumentException("관리자 암호가 틀려 등록이 불가능합니다.");
         }
 
-        if (requestDto.getRole().equals(MemberRole.ADMIN) && requestDto.getAdminToken().equals(ADMIN_TOKEN)) {
+        if (isAdminRole(requestDto) && isAdminTokenValid(requestDto)) {
             role = MemberRole.ADMIN;
         }
 
@@ -66,5 +66,13 @@ public class MemberService {
         }
 
         response.addHeader(JwtUtil.AUTHORIZATION_HEADER, jwtUtil.createToken(member.getUsername(), member.getRole()));
+    }
+
+    private static boolean isAdminTokenValid(MemberRequestDto requestDto) {
+        return requestDto.getAdminToken().equals(ADMIN_TOKEN);
+    }
+
+    private static boolean isAdminRole(MemberRequestDto requestDto) {
+        return requestDto.getRole().equals(MemberRole.ADMIN);
     }
 }

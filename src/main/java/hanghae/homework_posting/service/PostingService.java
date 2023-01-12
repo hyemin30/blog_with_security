@@ -8,7 +8,6 @@ import hanghae.homework_posting.repository.MemberRepository;
 import hanghae.homework_posting.repository.PostingLikesRepository;
 import hanghae.homework_posting.repository.PostingRepository;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,7 +28,7 @@ public class PostingService {
 
     @Transactional
     public PostingResponseDto createPosting(PostingRequestDto requestDto, HttpServletRequest request) {
-        //토큰 검증
+        //사용자 검증
         Claims claims = getClaims(request);
 
         //사용자 찾기
@@ -65,7 +64,7 @@ public class PostingService {
         Posting posting = findPosting(id);
 
         // 관리자 or 본인확인
-        if (username.equals(posting.getMember().getUsername()) || role.equals(MemberRole.ADMIN.toString())) {
+        if (isSelfOrAdmin(username, role, posting)) {
             posting.update(requestDto);
             return new PostingResponseDto(id, posting);
         }
@@ -74,14 +73,14 @@ public class PostingService {
 
     @Transactional
     public void deletePosting(Long id, HttpServletRequest request) {
-        //토큰 검증
+        //사용자 검증
         Claims claims = getClaims(request);
         String username = claims.getSubject();
         String role = (String) claims.get("role");
 
         Posting posting = findPosting(id);
 
-        if (username.equals(posting.getMember().getUsername()) || role.equals(MemberRole.ADMIN.toString())) {
+        if (isSelfOrAdmin(username, role, posting)) {
             postingRepository.delete(posting);
             return;
         }
@@ -98,9 +97,7 @@ public class PostingService {
         Member member = findMember(username);
 
         //게시글 검색
-        Posting posting = postingRepository.findById(postingId).orElseThrow(
-                () -> new IllegalArgumentException("존재하지 않는 게시글입니다")
-        );
+        Posting posting = findPosting(postingId);
 
         PostingLikes like = likesRepository.findByMemberIdAndPostingId(member.getId(), postingId);
         if (like == null) { //좋아요 테이블에 이력이 없음
@@ -119,6 +116,10 @@ public class PostingService {
             postingRepository.cancelLike(postingId);         // 게시글에 좋아요 갯수 감소
             return false;
         }
+    }
+
+    private static boolean isSelfOrAdmin(String username, String role, Posting posting) {
+        return username.equals(posting.getMember().getUsername()) || role.equals(MemberRole.ADMIN.toString());
     }
 
     private Member findMember(String username) {
